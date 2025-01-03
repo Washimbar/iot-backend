@@ -61,9 +61,6 @@ router.post("/verify-otp", async (req, res) => {
 
         // Find the user and verify OTP
 	const user = await User.findOne({ email });
-	const user = await User.findOne({ email });
-
-        const user = await User.findOne({ email });
 
         if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
             return res.status(400).json({ error: "Invalid OTP" });
