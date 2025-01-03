@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const nodemailer = require("nodemailer");
 const otpGenerator = require("otp-generator");
@@ -8,6 +9,8 @@ const router = express.Router();
 
 const transporter = nodemailer.createTransport({
 	service: "gmail",
+	// secure: true,
+	// port: 465,
 	auth: {
 		user: process.env.EMAIL_USER,
 		pass: process.env.EMAIL_PASS,
@@ -48,31 +51,71 @@ router.post("/signup", async (req, res) => {
 });
 
 router.post("/verify-otp", async (req, res) => {
-	const { email, otp } = req.body;
+    try {
+        const { email, otp } = req.body;
+
+        // Validate input
+        if (!email || !otp) {
+            return res.status(400).json({ error: "Email and OTP are required" });
+        }
+
+        // Find the user and verify OTP
+	const user = await User.findOne({ email });
 	const user = await User.findOne({ email });
 
-	if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
-		return res.status(400).send("Invalid OTP");
-	}
+        const user = await User.findOne({ email });
 
-	user.otp = undefined;
-	user.otpExpires = undefined;
-	await user.save();
+        if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
+            return res.status(400).json({ error: "Invalid OTP" });
+        }
 
-	res.send("User verified and signed up successfully");
+        // Clear OTP fields
+        user.otp = undefined;
+        user.otpExpires = undefined;
+		user.isVerified = true;
+        await user.save();
+
+        res.json({ message: "User verified and signed up successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
+    }
 });
+
 
 router.post("/login", async (req, res) => {
-	const { email, password } = req.body;
-	const user = await User.findOne({ email });
+    try {
+        const { email, password } = req.body;
 
-	if (!user || !(await bcrypt.compare(password, user.password))) {
-		return res.status(400).send("Invalid credentials");
-	}
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email and password are required" });
+        }
 
-	const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
-	res.send({ token });
+        const user = await User.findOne({ email });
+        const isPasswordCorrect = user && (await bcrypt.compare(password, user.password));
+
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ error: "Invalid credentials" });
+        }
+
+        // Check if the user is verified
+        if (!user.isVerified) {
+            return res.status(403).json({ error: "User is not verified" });
+        }
+
+        const token = jwt.sign(
+            { userId: user._id, userType: user.userType },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+
+        res.json({ message: "Login successful", token });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
+    }
 });
+
 
 router.post("/forgot-password", async (req, res) => {
 	const { email } = req.body;
