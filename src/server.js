@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const swaggerSetup = require("./swagger");
+const authMiddleware = require("./middlewares/authMiddleware");
 
 dotenv.config();
 const PORT = process.env.PORT || 3005;
@@ -20,14 +21,12 @@ const deviceRoutes = require("./routes/devices");
 const connectDB = require("./connection/connectDB");
 
 // Use routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/rooms", roomRoutes);
-app.use("/api/devices", deviceRoutes);
-
+app.use("/api/auth", authRoutes); // Public route
+app.use("/api/users", authMiddleware, userRoutes); // Authenticated route
+app.use("/api/rooms", authMiddleware, roomRoutes); // Authenticated route
+app.use("/api/devices", authMiddleware, deviceRoutes); // Authenticated route
 
 // Connect to MongoDB
-
 const start = async () => {
 	try {
 		await connectDB();
