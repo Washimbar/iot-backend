@@ -1,30 +1,18 @@
+require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const swaggerSetup = require("./swagger");
-
-dotenv.config();
-const PORT = process.env.PORT || 3005;
+const cors = require("cors");
+const helmet = require("helmet");
+const bodyParser = require("body-parser");
+const connectDB = require("./connection/connectDB");
+const authRoutes = require("./routes/auth.routes");
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3005;
 
-// Setup Swagger
-swaggerSetup(app);
-
-// Import routes
-const authRoutes = require("./routes/auth");
-const userRoutes = require("./routes/users");
-const roomRoutes = require("./routes/rooms");
-const deviceRoutes = require("./routes/devices");
-const connectDB = require("./connection/connectDB");
-
-// Use routes
+app.use(helmet());
+app.use(cors());
+app.use(bodyParser.json());
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/rooms", roomRoutes);
-app.use("/api/devices", deviceRoutes);
-
 
 // Connect to MongoDB
 
