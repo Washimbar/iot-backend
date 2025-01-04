@@ -142,7 +142,7 @@ router.post("/login", async (req, res) => {
 
 // Refresh token route
 router.post("/refresh-token", (req, res) => {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.body.refreshToken;
 
     if (!refreshToken) {
         return res.status(401).json({ error: "No refresh token provided" });
